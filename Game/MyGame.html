@@ -37,14 +37,19 @@
         var box1, box2, ground;
         var picked = false;
         var meshes = [];
+
         meshes.length = 30;
         var arrayPosition = 0;
+
         var animations = [];
         animations.length = 30;
+
         var animationKeys = [];
         animationKeys.length = 30;
+
         var nextAnimation = [];
         nextAnimation.length = 30;
+
         var pathMeshes = [];
         pathMeshes.length = 36;
         var pathArrayPosition = 0;
@@ -188,7 +193,6 @@
                 meshes[x].animations = [];
                 meshes[x].animations.push(animations[x]);
                 nextAnimation[x] = scene.beginAnimation(meshes[x], 0, 100, true);
-                //nextAnimation[x].reset();
             }
 
             for(var x = 0; x < 10; x++){
@@ -210,40 +214,43 @@
 
         //Randomly picks what obstacle to generate
         var generate = function(scene){
+
+            scenePath(zTranslation);
+
             var randomNumber = Math.floor(Math.random() * 10);
             switch (randomNumber){
                 case 1:
-                    scene1(zTranslation);
+                    scene6(zTranslation, scene);
                     break;
                 case 2:
-                    scene2(zTranslation);
+                    scene6(zTranslation, scene);
                     break;
                 case 3:
-                    scene3(zTranslation);
+                    scene6(zTranslation, scene);
                     break;
                 case 4:
-                    scene4(zTranslation);
+                    scene6(zTranslation, scene);
                     break;
                 case 5:
-                    scene5(zTranslation);
+                    scene6(zTranslation, scene);
                     break;
                 case 6:
-                    scene4(zTranslation, scene);
+                    scene6(zTranslation, scene);
                     break;
                 case 7:
-                    scene3(zTranslation, scene);
+                    scene6(zTranslation, scene);
                     break;
                 case 8:
-                    scene2(zTranslation, scene);
+                    scene6(zTranslation, scene);
                     break;
                 case 9:
-                    scene1(zTranslation);
+                    scene6(zTranslation, scene);
                     break;
                 case 10:
-                    scene2(zTranslation);
+                    scene6(zTranslation, scene);
                     break;
                 default:
-                    scene3(zTranslation);
+                    scene6(zTranslation, scene);
                     break;
             }
             zTranslation = zTranslation - 20;
@@ -348,10 +355,9 @@
         //can be picked to be randomly generated
 
         var scene1 = function(zTranslation){
-            
-            scenePath(zTranslation);
-            
-            nextAnimation[arrayPosition].stop();
+
+            nextAnimation[arrayPosition].pause();
+
             meshes[arrayPosition].scaling.x = 14;
             meshes[arrayPosition].position.x = 0;
             meshes[arrayPosition].position.y = 0.2;
@@ -359,14 +365,15 @@
         }
 
         var scene2 = function(zTranslation){
-            nextAnimation[arrayPosition].stop();
-            scenePath(zTranslation);
+
+            nextAnimation[arrayPosition].pause();
+            nextAnimation[arrayPosition + 1].pause();
+
             meshes[arrayPosition].scaling.x = 8.3;
             meshes[arrayPosition].position.y = 0.2;
             meshes[arrayPosition].position.x = -5.4;
             meshes[arrayPosition].position.z = zTranslation;
 
-            nextAnimation[arrayPosition + 1].stop();
             meshes[arrayPosition + 1].scaling.x = 8.3
             meshes[arrayPosition + 1].position.y = 0.2;
             meshes[arrayPosition + 1].position.x = 5.4;
@@ -378,20 +385,22 @@
         }
 
         var scene3 = function(zTranslation){
-            scenePath(zTranslation);
-            nextAnimation[arrayPosition].stop();
+
+            nextAnimation[arrayPosition].pause();
+            nextAnimation[arrayPosition + 1].pause();
+            nextAnimation[arrayPosition + 2].pause();
+
             meshes[arrayPosition].scaling.x = 6
             meshes[arrayPosition].position.y = 0.2;
             meshes[arrayPosition].position.x = -6.5;
             meshes[arrayPosition].position.z = zTranslation;
 
-            nextAnimation[arrayPosition + 1].stop();
+            
             meshes[arrayPosition + 1].scaling.x = 6;
             meshes[arrayPosition + 1].position.y = 0.2;
             meshes[arrayPosition + 1].position.x = 6.5;
             meshes[arrayPosition + 1].position.z = zTranslation;
 
-            nextAnimation[arrayPosition + 2].stop();
             meshes[arrayPosition + 2].scaling.x = 2.5;
             meshes[arrayPosition + 2].position.y = 0.2;
             meshes[arrayPosition + 2].position.x = 0;
@@ -404,8 +413,9 @@
         }
 
         var scene4 = function(zTranslation){
-            scenePath(zTranslation);
-            nextAnimation[arrayPosition].stop();
+
+            nextAnimation[arrayPosition].pause();
+
             meshes[arrayPosition].scaling.x = 16.5;
             meshes[arrayPosition].position.y = 0.2;
             meshes[arrayPosition].position.x = -1.25;
@@ -416,8 +426,9 @@
         }
 
         var scene5 = function(zTranslation){
-            scenePath(zTranslation);
-            nextAnimation[arrayPosition].stop();
+
+            nextAnimation[arrayPosition].pause();
+
             meshes[arrayPosition].scaling.x = 17;
             meshes[arrayPosition].position.y = 0.2;
             meshes[arrayPosition].position.x = 1;
@@ -428,110 +439,112 @@
         }
 
         var scene6 = function(zTranslation, scene){
-            scenePath(zTranslation);
+
             meshes[arrayPosition].scaling.x = 4
             meshes[arrayPosition].position.y = 0.2;
             meshes[arrayPosition].position.x = -7.5;
             meshes[arrayPosition].position.z = zTranslation;
-            var boxAnimation = new BABYLON.Animation("myAnimation", "position.x", 30, BABYLON.Animation.ANIMATIONTYPE_FLOAT, BABYLON.Animation.ANIMATIONLOOPMODE_CYCLE);
 
-            var keys = []; 
-            keys.push({
+            animations[arrayPosition] = new BABYLON.Animation("myAnimation", "position.x", 30, BABYLON.Animation.ANIMATIONTYPE_FLOAT, BABYLON.Animation.ANIMATIONLOOPMODE_CYCLE);
+            animationKeys[arrayPosition] = []; 
+            animationKeys[arrayPosition].push({
                 frame: 0,
                 value: -7.5
             });
-            keys.push({
+            animationKeys[arrayPosition].push({
                 frame: 20,
                 value: 7.5
             });
-            keys.push({
+            animationKeys[arrayPosition].push({
                 frame: 100,
                 value: -7.5
             });
 
-            boxAnimation.setKeys(keys);
+            animations[arrayPosition].setKeys(animationKeys[arrayPosition]);
             meshes[arrayPosition].animations = [];
-            meshes[arrayPosition].animations.push(boxAnimation);
-            scene.beginAnimation(meshes[arrayPosition], 0, 100, true);
+            //meshes[arrayPosition].animations.push(animations[arrayPosition]);
+            meshes[arrayPosition]
+            //nextAnimation[arrayPosition] = [];
+            //nextAnimation[arrayPosition] = scene.Animation(meshes[arrayPosition], 0, 100, true);
+            //nextAnimation[arrayPosition].restart();
 
         }
 
         var scene7 = function(zTranslation, scene){
-            scenePath(zTranslation);
             //Box1 
             meshes[arrayPosition].scaling.x = 4;
             meshes[arrayPosition].position.y = 0.2;
             meshes[arrayPosition].position.x = -7.5;
             meshes[arrayPosition].position.z = zTranslation;
-            var boxAnimation = new BABYLON.Animation("myAnimation", "position.x", 30, BABYLON.Animation.ANIMATIONTYPE_FLOAT, BABYLON.Animation.ANIMATIONLOOPMODE_CYCLE);
-            var keys = []; 
-            keys.push({
+            animationKeys[arrayPosition] = []; 
+            animationKeys[arrayPosition].push({
                 frame: 0,
                 value: -7.5
             });
-            keys.push({
+            animationKeys[arrayPosition].push({
                 frame: 50,
                 value: -2
             });
-            keys.push({
+            animationKeys[arrayPosition].push({
                 frame: 100,
                 value: -7.5
             });
-            boxAnimation.setKeys(keys);
+            animations[arrayPosition].setKeys(animationKeys[arrayPosition]);
             meshes[arrayPosition].animations = [];
-            meshes[arrayPosition].animations.push(boxAnimation);
-            scene.beginAnimation(meshes[arrayPosition], 0, 100, true);
+            meshes[arrayPosition].animations.push(animations[arrayPosition]);
+            nextAnimation[arrayPosition] = scene.beginAnimation(meshes[arrayPosition], 0, 100, true);
+            nextAnimation[arrayPosition].restart();
             //Box2
             meshes[arrayPosition + 1].scaling.x = 4;
             meshes[arrayPosition + 1].position.y = 0.2;
             meshes[arrayPosition + 1].position.x = 7.5;
             meshes[arrayPosition + 1].position.z = zTranslation;
-            var boxAnimation2 = new BABYLON.Animation("myAnimation2", "position.x", 30, BABYLON.Animation.ANIMATIONTYPE_FLOAT, BABYLON.Animation.ANIMATIONLOOPMODE_CYCLE);
-            var keys2 = []; 
-            keys2.push({
+
+            animationKeys[arrayPosition + 1] = []; 
+            animationKeys[arrayPosition + 1].push({
                 frame: 0,
                 value: 7.5
             });
-            keys2.push({
+            animationKeys[arrayPosition + 1].push({
                 frame: 50,
                 value: 2
             });
-            keys2.push({
+            animationKeys[arrayPosition + 1].push({
                 frame: 100,
                 value: 7.5
             });
-            boxAnimation2.setKeys(keys2);
+            animations[arrayPosition + 1].setKeys(animationKeys[arrayPosition + 1]);
             meshes[arrayPosition + 1].animations = [];
-            meshes[arrayPosition + 1].animations.push(boxAnimation2);
-            scene.beginAnimation(meshes[arrayPosition + 1], 0, 100, true);
+            meshes[arrayPosition + 1].animations.push(animations[arrayPosition + 1]);
+            nextAnimation[arrayPosition + 1] = scene.beginAnimation(meshes[arrayPosition + 1], 0, 100, true);
+            nextAnimation[arrayPosition + 1].restart();
         }
 
         var scene8 = function(zTranslation, scene){
-            scenePath(zTranslation);
             meshes[arrayPosition].scaling.x = 8;
             meshes[arrayPosition].position.y = 0.2;
             meshes[arrayPosition].position.x = -5.5;
             meshes[arrayPosition].position.z = zTranslation;
-            var boxAnimation = new BABYLON.Animation("myAnimation", "position.x", 30, BABYLON.Animation.ANIMATIONTYPE_FLOAT, BABYLON.Animation.ANIMATIONLOOPMODE_CYCLE);
 
-            var keys = []; 
-            keys.push({
+            animationKeys[arrayPosition] = []; 
+            animationKeys[arrayPosition].push({
                 frame: 0,
                 value: -5.5
             });
-            keys.push({
+            animationKeys[arrayPosition].push({
                 frame: 50,
                 value: 5.5
             });
-            keys.push({
+            animationKeys[arrayPosition].push({
                 frame: 100,
                 value: -5.5
             });
 
-            boxAnimation.setKeys(keys);
+            animations[arrayPosition].setKeys(animationKeys[arrayPosition]);
             meshes[arrayPosition].animations = [];
-            meshes[arrayPosition].animations.push(boxAnimation);
-            scene.beginAnimation(meshes[arrayPosition], 0, 100, true);
+            meshes[arrayPosition].animations.push(animations[arrayPosition]);
+            nextAnimation[arrayPosition] = scene.beginAnimation(meshes[arrayPosition], 0, 100, true);
+            nextAnimation[arrayPosition].restart();
         }
 
         // var playCornFieldChase = function (scene){
