@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+        <title>Babylon Template</title>
+
+        <style>
+            html, body {
+                overflow: hidden;
+                width: 100%;
+                height: 100%;
+                margin: 0;
+                padding: 0;
+            }
+
+            #renderCanvas {
+                width: 100%;
+                height: 100%;
+                touch-action: none;
+            }
+        </style>
+
+        <script src="https://preview.babylonjs.com/babylon.js"></script>
+        <script src="https://preview.babylonjs.com/gui/babylon.gui.min.js"></script>
+        <script src="https://preview.babylonjs.com/loaders/babylonjs.loaders.min.js"></script>
+        <script src="https://code.jquery.com/pep/0.4.3/pep.js"></script>
+    </head>
+
+   <body>
+
+    <canvas id="renderCanvas" touch-action="none"></canvas> //touch-action="none" for best results from PEP
+
+    <script>
+        var canvas = document.getElementById("renderCanvas"); // Get the canvas element
+        var engine = new BABYLON.Engine(canvas, true); // Generate the BABYLON 3D engine
+        var box1, box2, ground;
+        var picked = false;
+        var meshes = [];
+        meshes.length = 30;
+        var arrayPosition = 0;
+        var animations = [];
+        animations.length = 30;
+        var animationKeys = [];
+        animationKeys.length = 30;
+        var nextAnimation = [];
+        nextAnimation.length = 30;
+        var pathMeshes = [];
+        pathMeshes.length = 36;
+        var pathArrayPosition = 0;
+        var zTranslation = -20;
+        var cameraPositionVariable = 28;
+        count = 30;
+
+        /******* Add the create scene function ******/
+        var createScene = function () {
+            
+            
+            // Create the scene space
+            var scene = new BABYLON.Scene(engine);
+            scene.gravity = new BABYLON.Vector3(0, -9.81, 0);
+
+            // Add a camera to the scene and attach it to the canvas at 28
+            var camera = new BABYLON.UniversalCamera("Camera", new BABYLON.Vector3(0,1, 28), scene);
+            camera.setTarget(BABYLON.Vector3.Zero())
+            camera.setTarget(new BABYLON.Vector3(0,0,-40), scene);
+            //camera.attachControl(canvas, true);
+            camera.speed = 0.7;
+            camera.applyGravity = true;
+            camera.checkCollisions = true;
+
+            //Initializing Keystrokes
+            var inputMap = {};
+            scene.actionManager = new BABYLON.ActionManager(scene);
+            scene.actionManager.registerAction(new BABYLON.ExecuteCodeAction(BABYLON.ActionManager.OnKeyDownTrigger, function(evt) {
+                inputMap[evt.sourceEvent.key] = evt.sourceEvent.type == "keydown";
+            }));
+            scene.actionManager.registerAction(new BABYLON.ExecuteCodeAction(BABYLON.ActionManager.OnKeyUpTrigger, function(evt) {
+                inputMap[evt.sourceEvent.key] = evt.sourceEvent.type == "keydown";
+            }));
+
+            // Add lights to the scene
+            //var light1 = new BABYLON.HemisphericLight("light1", new BABYLON.Vector3(1, 1, 0), scene);
+            var light2 = new BABYLON.PointLight("light2", new BABYLON.Vector3(0, 0, 10), scene);
+            //var light = new BABYLON.DirectionalLight("DirectionalLight", new BABYLON.Vector3(0, 3, 0), scene);
+
+            //playCornFieldChase(scene);
+            beginGUI(scene);
+            skyBox(scene);
+            initializeScenePath();
+            initializeMeshesArray(scene);
+            scenePath(20);
+            scenePath(0);
+
+            // var myPlane = BABYLON.MeshBuilder.CreatePlane("myPlane", {height:2, width: 2}, scene);
+            // myPlane.position.x = 0;
+            // myPlane.position.z = 20;
+            // myPlane.position.y = 1;
+            // var axis = new BABYLON.Vector3(0, -1, 0);
+            // var angle = Math.PI/2;
+            // myPlane.rotate(axis, angle, BABYLON.Space.WORLD);
+            // myPlane.rotate(axis, angle, BABYLON.Space.LOCAL);
+
+            // var advancedTexture = BABYLON.GUI.AdvancedDynamicTexture.CreateFullscreenUI(
+            //     "myUI"
+            // );
+            // var advancedTexture2 = BABYLON.GUI.AdvancedDynamicTexture.CreateForMesh(
+            //     myPlane,
+            //     1024,
+            //     1024
+            // );
+
+            // var advancedTexture = BABYLON.GUI.AdvancedDynamicTexture.CreateFullscreenUI("myUI");
+            // advancedTexture.isForeground = false;
+            
+            scene.registerBeforeRender(function() {
+                if(picked){
+                    camera.position.z += -0.3;
+                    cameraPositionVariable+= -0.3
+                    if(cameraPositionVariable < -20){
+                        cameraPositionVariable = cameraPositionVariable + 20;
+                        if(count > 30){
+                            transformMesh(zTranslation, scene);
+                        }
+                        count++;
+                    }
+                    picked = castRay(scene, camera);
+                }
+            });
+
+            //Keystrokes Left and Right
+            scene.onBeforeRenderObservable.add(() =>{
+                if(inputMap["d"] || inputMap["ArrowRight"]) {
+                    if(camera.position.x >= -9 && picked){
+                        camera.position.x -=0.33;
+                    }
+                }
+                if(inputMap["a"] || inputMap["ArrowLeft"]) {
+                    if(camera.position.x <= 9 && picked){
+                        camera.position.x +=0.33;
+                    }
+                }
+            });
+
+            return scene;
+        };
+
+        var beginGUI = function(scene){
+            var manager = new BABYLON.GUI.GUI3DManager(scene);
+            var panel = new BABYLON.GUI.StackPanel3D();
+            panel.margin = 0.02;
+            manager.addControl(panel);
+            panel.position = new BABYLON.Vector3(0, 1, 20);
+            var button = new BABYLON.GUI.Button3D("wireframe");
+            panel.addControl(button);
+            panel.rotation = new BABYLON.Vector3(1, Math.PI/2, 1);
+            button.onPointerUpObservable.add(function(){
+                picked = true;
+                panel.position.z = 40;
+            });
+            var text = new BABYLON.GUI.TextBlock();
+            button.rotation = 2;
+            text.text = "Click to Begin";
+            text.color = "black";
+            text.fontSize = 36;
+            var axis = new BABYLON.Vector3(0, -1, 0);
+            var angle = Math.PI/2;
+            //.rotate(axis, angle, BABYLON.Space.WORLD);
+            //button.rotate(axis, angle, BABYLON.Space.LOCAL);
+        }
+
+        //Generates Array of Meshes to be used for obstacles
+        var initializeMeshesArray = function(scene){
+            for(var x = 0; x < 30; x++){
+                var xToString = x.toString();
+                meshes[x] = BABYLON.MeshBuilder.CreateBox(xToString, {length: 3, width: 1, height: 3}, scene);
+                meshes[x].position.z = 40;
+                meshes[x].position.x += x;
+                meshes[x].position.y += x;
+                
+                animations[x] = new BABYLON.Animation("myAnimation", "position.x", 30, BABYLON.Animation.ANIMATIONTYPE_FLOAT, BABYLON.Animation.ANIMATIONLOOPMODE_CYCLE);
+                animationKeys[x] = []; 
+                animationKeys[x].push({
+                    frame: 0,
+                    value: 0
+                });
+                animations[x].setKeys(animationKeys[x]);
+                meshes[x].animations = [];
+                meshes[x].animations.push(animations[x]);
+                nextAnimation[x] = scene.beginAnimation(meshes[x], 0, 100, true);
+                //nextAnimation[x].reset();
+            }
+
+            for(var x = 0; x < 10; x++){
+                generate(scene);
+                arrayPosition = arrayPosition + 3
+            }
+            console.log(arrayPosition);
+        }
+
+        //Transforms Obstacles overtime
+        var transformMesh = function(scene, camera){
+            if(arrayPosition >= 30){
+                arrayPosition = 0;
+            }
+            meshes[arrayPosition.ani]
+            generate(scene);
+            arrayPosition += 3;
+        }
+
+        //Randomly picks what obstacle to generate
+        var generate = function(scene){
+            var randomNumber = Math.floor(Math.random() * 10);
+            switch (randomNumber){
+                case 1:
+                    scene1(zTranslation);
+                    break;
+                case 2:
+                    scene2(zTranslation);
+                    break;
+                case 3:
+                    scene3(zTranslation);
+                    break;
+                case 4:
+                    scene4(zTranslation);
+                    break;
+                case 5:
+                    scene5(zTranslation);
+                    break;
+                case 6:
+                    scene4(zTranslation, scene);
+                    break;
+                case 7:
+                    scene3(zTranslation, scene);
+                    break;
+                case 8:
+                    scene2(zTranslation, scene);
+                    break;
+                case 9:
+                    scene1(zTranslation);
+                    break;
+                case 10:
+                    scene2(zTranslation);
+                    break;
+                default:
+                    scene3(zTranslation);
+                    break;
+            }
+            zTranslation = zTranslation - 20;
+        }
+
+        //Start Button
+        var beginGUI = function(scene){
+            var manager = new BABYLON.GUI.GUI3DManager(scene);
+            var panel = new BABYLON.GUI.StackPanel3D();
+            panel.margin = 0.02;
+            manager.addControl(panel);
+            panel.position = new BABYLON.Vector3(0, 1, 20);
+            var button = new BABYLON.GUI.Button3D("wireframe");
+            panel.addControl(button);
+            panel.rotation = new BABYLON.Vector3(1, Math.PI/2, 1);
+            button.onPointerUpObservable.add(function(){
+                picked = true;
+                panel.position.z = 40;
+            });
+            var text = new BABYLON.GUI.TextBlock();
+            button.rotation = 2;
+            text.text = "Click to Begin";
+            text.color = "black";
+            text.fontSize = 36;
+        }
+
+        //A Ray that checks if the Camera Hits Something
+        var castRay = function(scene, camera){    
+            var origin = camera.position;
+            
+            var forward = new BABYLON.Vector3(0,0,1);		
+            var m = camera.getWorldMatrix();
+            forward = BABYLON.Vector3.TransformCoordinates(forward, m);
+        
+            var direction = forward.subtract(origin);
+            direction = BABYLON.Vector3.Normalize(direction);
+        
+            var length = 1.3;
+        
+            var ray = new BABYLON.Ray(origin, direction, length);
+
+            var hit = scene.pickWithRay(ray);
+
+            if (hit.pickedMesh){
+                console.log("Picked");
+                return false;
+            }
+            return true;
+        }
+
+        //Create the Skybox
+        var skyBox = function (scene) {
+            var skybox = BABYLON.MeshBuilder.CreateBox("skyBox", {size:500.0}, scene);
+            var skyboxMaterial = new BABYLON.StandardMaterial("skyBox", scene);
+            skyboxMaterial.backFaceCulling = false;
+            skyboxMaterial.reflectionTexture = new BABYLON.CubeTexture("textures/skybox", scene);
+            skyboxMaterial.reflectionTexture.coordinatesMode = BABYLON.Texture.SKYBOX_MODE;
+            skybox.material = skyboxMaterial;
+            skybox.infiniteDistance = true;
+        }
+
+        //Creates an Array that contains the Scene Path
+        var initializeScenePath = function(){
+
+            blackMaterial = new BABYLON.StandardMaterial("BlackMaterial", scene);
+            blackMaterial.diffuseColor = new BABYLON.Color3(0, 0, 0);
+            blackMaterial.specularColor = new BABYLON.Color3(1, 0.2, 0.6);
+
+            for(var x = 0; x <= 36; x += 3){
+
+                pathMeshes[x] = BABYLON.MeshBuilder.CreateGround("ground", { width: 20, height: 20 }, scene);
+                pathMeshes[x].material = blackMaterial;
+                pathMeshes[x].checkCollisions = true;
+                pathMeshes[x].position.z = 40;
+
+                pathMeshes[x + 1] = BABYLON.MeshBuilder.CreateBox("box1", {length: 1, width: 20}, scene);
+                pathMeshes[x + 1].rotation.y  =  Math.PI/2;
+                pathMeshes[x + 1].position.x = 10;
+                pathMeshes[x + 1].position.z = 40;
+
+                pathMeshes[x + 2] = BABYLON.MeshBuilder.CreateBox("box2", {length: 1, width: 20}, scene);
+                pathMeshes[x + 2].rotation.y  =  Math.PI/2;
+                pathMeshes[x + 2].position.x = -10;
+                pathMeshes[x + 2].position.z = 40;
+
+                pathArrayPosition += 3;
+            }
+        }
+
+        //Transforms the scene path overtime as you move foward
+        var scenePath = function(zTranslation) {
+            pathArrayPosition += 3;
+            if(pathArrayPosition >= 36){
+                pathArrayPosition = 0;
+            }
+            pathMeshes[pathArrayPosition].position.z = zTranslation;
+            pathMeshes[pathArrayPosition + 1].position.z = zTranslation;
+            pathMeshes[pathArrayPosition + 2].position.z = zTranslation;
+        }
+
+        //The Following Scenes are different variations of obstacles that
+        //can be picked to be randomly generated
+
+        var scene1 = function(zTranslation){
+            
+            scenePath(zTranslation);
+            
+            nextAnimation[arrayPosition].stop();
+            meshes[arrayPosition].scaling.x = 14;
+            meshes[arrayPosition].position.x = 0;
+            meshes[arrayPosition].position.y = 0.2;
+            meshes[arrayPosition].position.z = zTranslation;
+        }
+
+        var scene2 = function(zTranslation){
+            nextAnimation[arrayPosition].stop();
+            scenePath(zTranslation);
+            meshes[arrayPosition].scaling.x = 8.3;
+            meshes[arrayPosition].position.y = 0.2;
+            meshes[arrayPosition].position.x = -5.4;
+            meshes[arrayPosition].position.z = zTranslation;
+
+            nextAnimation[arrayPosition + 1].stop();
+            meshes[arrayPosition + 1].scaling.x = 8.3
+            meshes[arrayPosition + 1].position.y = 0.2;
+            meshes[arrayPosition + 1].position.x = 5.4;
+            meshes[arrayPosition + 1].position.z = zTranslation;
+
+            meshes[arrayPosition].checkCollisions = true;
+            meshes[arrayPosition + 1].checkCollisions = true;
+
+        }
+
+        var scene3 = function(zTranslation){
+            scenePath(zTranslation);
+            nextAnimation[arrayPosition].stop();
+            meshes[arrayPosition].scaling.x = 6
+            meshes[arrayPosition].position.y = 0.2;
+            meshes[arrayPosition].position.x = -6.5;
+            meshes[arrayPosition].position.z = zTranslation;
+
+            nextAnimation[arrayPosition + 1].stop();
+            meshes[arrayPosition + 1].scaling.x = 6;
+            meshes[arrayPosition + 1].position.y = 0.2;
+            meshes[arrayPosition + 1].position.x = 6.5;
+            meshes[arrayPosition + 1].position.z = zTranslation;
+
+            nextAnimation[arrayPosition + 2].stop();
+            meshes[arrayPosition + 2].scaling.x = 2.5;
+            meshes[arrayPosition + 2].position.y = 0.2;
+            meshes[arrayPosition + 2].position.x = 0;
+            meshes[arrayPosition + 2].position.z = zTranslation;
+
+            meshes[arrayPosition].checkCollisions = true;
+            meshes[arrayPosition + 1].checkCollisions = true;
+            meshes[arrayPosition + 2].checkCollisions = true;
+
+        }
+
+        var scene4 = function(zTranslation){
+            scenePath(zTranslation);
+            nextAnimation[arrayPosition].stop();
+            meshes[arrayPosition].scaling.x = 16.5;
+            meshes[arrayPosition].position.y = 0.2;
+            meshes[arrayPosition].position.x = -1.25;
+            meshes[arrayPosition].position.z = zTranslation;
+
+            meshes[arrayPosition].checkCollisions = true;
+
+        }
+
+        var scene5 = function(zTranslation){
+            scenePath(zTranslation);
+            nextAnimation[arrayPosition].stop();
+            meshes[arrayPosition].scaling.x = 17;
+            meshes[arrayPosition].position.y = 0.2;
+            meshes[arrayPosition].position.x = 1;
+            meshes[arrayPosition].position.z = zTranslation;
+
+            meshes[arrayPosition].checkCollisions = true;
+
+        }
+
+        var scene6 = function(zTranslation, scene){
+            scenePath(zTranslation);
+            meshes[arrayPosition].scaling.x = 4
+            meshes[arrayPosition].position.y = 0.2;
+            meshes[arrayPosition].position.x = -7.5;
+            meshes[arrayPosition].position.z = zTranslation;
+            var boxAnimation = new BABYLON.Animation("myAnimation", "position.x", 30, BABYLON.Animation.ANIMATIONTYPE_FLOAT, BABYLON.Animation.ANIMATIONLOOPMODE_CYCLE);
+
+            var keys = []; 
+            keys.push({
+                frame: 0,
+                value: -7.5
+            });
+            keys.push({
+                frame: 20,
+                value: 7.5
+            });
+            keys.push({
+                frame: 100,
+                value: -7.5
+            });
+
+            boxAnimation.setKeys(keys);
+            meshes[arrayPosition].animations = [];
+            meshes[arrayPosition].animations.push(boxAnimation);
+            scene.beginAnimation(meshes[arrayPosition], 0, 100, true);
+
+        }
+
+        var scene7 = function(zTranslation, scene){
+            scenePath(zTranslation);
+            //Box1 
+            meshes[arrayPosition].scaling.x = 4;
+            meshes[arrayPosition].position.y = 0.2;
+            meshes[arrayPosition].position.x = -7.5;
+            meshes[arrayPosition].position.z = zTranslation;
+            var boxAnimation = new BABYLON.Animation("myAnimation", "position.x", 30, BABYLON.Animation.ANIMATIONTYPE_FLOAT, BABYLON.Animation.ANIMATIONLOOPMODE_CYCLE);
+            var keys = []; 
+            keys.push({
+                frame: 0,
+                value: -7.5
+            });
+            keys.push({
+                frame: 50,
+                value: -2
+            });
+            keys.push({
+                frame: 100,
+                value: -7.5
+            });
+            boxAnimation.setKeys(keys);
+            meshes[arrayPosition].animations = [];
+            meshes[arrayPosition].animations.push(boxAnimation);
+            scene.beginAnimation(meshes[arrayPosition], 0, 100, true);
+            //Box2
+            meshes[arrayPosition + 1].scaling.x = 4;
+            meshes[arrayPosition + 1].position.y = 0.2;
+            meshes[arrayPosition + 1].position.x = 7.5;
+            meshes[arrayPosition + 1].position.z = zTranslation;
+            var boxAnimation2 = new BABYLON.Animation("myAnimation2", "position.x", 30, BABYLON.Animation.ANIMATIONTYPE_FLOAT, BABYLON.Animation.ANIMATIONLOOPMODE_CYCLE);
+            var keys2 = []; 
+            keys2.push({
+                frame: 0,
+                value: 7.5
+            });
+            keys2.push({
+                frame: 50,
+                value: 2
+            });
+            keys2.push({
+                frame: 100,
+                value: 7.5
+            });
+            boxAnimation2.setKeys(keys2);
+            meshes[arrayPosition + 1].animations = [];
+            meshes[arrayPosition + 1].animations.push(boxAnimation2);
+            scene.beginAnimation(meshes[arrayPosition + 1], 0, 100, true);
+        }
+
+        var scene8 = function(zTranslation, scene){
+            scenePath(zTranslation);
+            meshes[arrayPosition].scaling.x = 8;
+            meshes[arrayPosition].position.y = 0.2;
+            meshes[arrayPosition].position.x = -5.5;
+            meshes[arrayPosition].position.z = zTranslation;
+            var boxAnimation = new BABYLON.Animation("myAnimation", "position.x", 30, BABYLON.Animation.ANIMATIONTYPE_FLOAT, BABYLON.Animation.ANIMATIONLOOPMODE_CYCLE);
+
+            var keys = []; 
+            keys.push({
+                frame: 0,
+                value: -5.5
+            });
+            keys.push({
+                frame: 50,
+                value: 5.5
+            });
+            keys.push({
+                frame: 100,
+                value: -5.5
+            });
+
+            boxAnimation.setKeys(keys);
+            meshes[arrayPosition].animations = [];
+            meshes[arrayPosition].animations.push(boxAnimation);
+            scene.beginAnimation(meshes[arrayPosition], 0, 100, true);
+        }
+
+        // var playCornFieldChase = function (scene){
+        //     var playCornField = new BABYLON.Sound(
+        //         "CornField", "file:///Users/calebherbel/Desktop/Winter%202020/Computer%20Graphics/Game/sounds/Cornfield%20Chase.mp3",
+        //         scene, null, {loop: false, autoplay: true}
+        //     );
+        // }
+        
+        /******* End of the create scene function ******/    
+
+        var scene = createScene(); //Call the createScene function
+
+        // Register a render loop to repeatedly render the scene
+        engine.runRenderLoop(function () { 
+                scene.render();
+        });
+
+        // Watch for browser/canvas resize events
+        window.addEventListener("resize", function () { 
+                engine.resize();
+        });
+    </script>
+
+   </body>
+</html>
