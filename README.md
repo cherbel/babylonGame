@@ -1,5 +1,5 @@
-# babylonGame
-This is a simple block runner game made with BABYLONJS
+# BlockRunner
+This is a simple block runner game that I made with BABYLONJS
 
 ## How to Use
 Simply Download the package and open BlockRunner.html in your browser.
